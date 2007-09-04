@@ -1,0 +1,90 @@
+--METHOD OVERVIEWS--
+
+All tokens have:
+	->src
+
+Both Row-Operation, and Row-OperationInfo Tokens have the
+following accessors:
+	->src
+	->name
+An Row-Operation token has the following accessors:
+	->src
+	->cost
+	->time
+	->name
+	->dom_level
+	->pop_info   -- gets a OperationInfo token from end
+	->shift_info -- same thing from beginign
+A Row-OperationInfo token has the following accessors:
+	->src
+	->name
+	->verbose (non-name)
+
+Both Time tokens, and Cost tokens share:
+	->range
+	->rows
+	->src
+	->startup (delegate to Range token ->(min/max)
+	->total (delegate to Range token ->(min/max)
+So a Time token has the following accessors
+	->range ## Returns Range token object
+	->rows
+	->src
+	->loops (specific to Time)
+	->startup (delegate to Range token ->(min/max)
+	->total (delegate to Range token ->(min/max)
+And a Cost token has the following accessors
+	->range ## Returns Range token object
+	->rows
+	->src
+	->width (specific to Cost)
+	->startup (delegate to Range token ->(min/max)
+	->total (delegate to Range token ->(min/max)
+
+A Range token has the following accessors
+	->min
+	->max
+
+Methods can be chained
+->row->cost->range->min (same as ->row->cost->startup)
+->row->dom_level
+
+
+-- Learn by example:
+
+The interface is simple you feed it a file it does the following mappings:
+
+**EACH TOKEN IS AN OBJECT**
+**EACH TOKEN HAS A ->src**
+**EACH TOKEN DERIVES INFORMATION FROM ->src**
+
+Each line of the query output is a subclass token (Operation or OperationInfo) of the Row Token
+ Sort  (cost=48262.10..48262.11 rows=2 width=87) (actual time=436194.363..436194.455 rows=73 loops=1)
+   Sort Key: "Appointment Time", "Last Name", "First Name"
+   ->  Unique  (cost=48262.05..48262.09 rows=2 width=87) (actual time=436193.824..436194.168 rows=73 loops=1)
+         ->  Sort  (cost=48262.05..48262.05 rows=2 width=87) (actual time=436193.820..436193.925 rows=73 loops=1)
+               Sort Key: ct_id, "Time Zone", "Last Name", "First Name", "Appointment Time", "Activity", notes, u_id
+
+Each row that starts with '->' AND the first line is an Operation Token
+ Sort  (cost=48262.10..48262.11 rows=2 width=87) (actual time=436194.363..436194.455 rows=73 loops=1)
+   ->  Unique  (cost=48262.05..48262.09 rows=2 width=87) (actual time=436193.824..436194.168 rows=73 loops=1)
+         ->  Sort  (cost=48262.05..48262.05 rows=2 width=87) (actual time=436193.820..436193.925 rows=73 loops=1)
+
+Each line that doesn't is an OperationInfo token:
+   Sort Key: "Appointment Time", "Last Name", "First Name"
+               Sort Key: ct_id, "Time Zone", "Last Name", "First Name", "Appointment Time", "Activity", notes, u_id
+
+Each Row-Operation object has its: name, and DOM level stored and is further divided into two more tokens
+	Cost token [$row->cost]:
+		cost=48262.10..48262.11 rows=2 width=87
+	Time token [$row->time]:
+		actual time=436194.363..436194.455 rows=73 loops=1
+
+Both Cost and Time tokens have a Range token:
+	Range token [$row->time->range]:
+		"436194.363..436194.455"
+	Range token [$row->cost->range]:
+		"48262.10..48262.11 rows=2 width=87"
+
+All token-objects have a ->src, to which they generate
+their information when called upon

@@ -1,0 +1,15 @@
+abstract: A framework to parse pg-query plans via the output of Explain / Explain Analyze
+author: 'Evan Carroll <me@evancarroll.com>'
+distribution_type: module
+generated_by: Module::Install version 0.64
+license: perl
+name: PSQL-Query
+no_index:
+  directory:
+    - PSQL/Query
+    - inc
+    - t
+requires:
+  Getopt::Long: 0
+  Moose: 0
+version: 0.01_01

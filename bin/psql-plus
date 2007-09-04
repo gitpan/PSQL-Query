@@ -1,0 +1,199 @@
+#!/usr/bin/perl -l
+use strict;
+use warnings;
+
+use PSQL::Query::Handle;
+use IO::Handle;
+use Getopt::Long;
+
+our ( $fmt_oppr, $fmt_info );
+my $result = GetOptions (
+	'printf=s'        => \$fmt_oppr
+	, 'printf-info=s' => \$fmt_info
+);
+
+$fmt_oppr = '%s' unless $fmt_oppr or $fmt_info;
+
+foreach ( $fmt_oppr, $fmt_info ) {
+	next unless defined;
+	s/ \\n / \n /gxo;
+	s/ \\t / \t /gxo;
+}
+
+my $io = IO::Handle->new_from_fd( 'STDIN', "r" );
+my $query = PSQL::Query::Handle->new({ handle => $io });
+
+while ( my $row = $query->shift_row ) {
+
+	if ( $fmt_oppr ) {
+		my $fmt_oppr = $fmt_oppr;
+
+		## Source/Name
+		## Estimate Startup/Total/Rows/Width
+		## Actual Startup/Total/Rows/Width
+		$fmt_oppr =~ s/
+			%( [snd] | e[strw] | a[strl] )
+			/ _lookup_oppr( $row, $1 )
+			/gex
+		;
+
+		## You might not always have something
+		## Case: user requests ANALYZE and does only EXPLAIN
+		print $fmt_oppr if $fmt_oppr;
+
+	}
+
+	if ( $fmt_info ) {
+		while ( my $row = $row->shift_info ) {
+			my $fmt_info = $fmt_info;
+
+			## Info Name/Verbose/Src
+			$fmt_info =~ s/
+				%( [nsv] )
+				/ _lookup_opprInfo( $row, $1 )
+				/gex
+			;
+
+			print $fmt_info;
+
+		}
+	}
+
+}
+
+sub _lookup_oppr {
+	my ( $row, $lookup ) = @_;
+
+	my ( $obj, $modifier ) = split '', $lookup;
+
+	my $return = {
+
+		##
+		## Row
+		##
+		n   => sub { $row->name       }
+		, s => sub { $row->src        }
+		, d => sub { $row->dom_level  }
+
+		, e => sub {
+			my $t = $row->cost;
+			return sub {
+				+{
+					s   => sub { $t->startup }
+					, t => sub { $t->total   }
+					, r => sub { $t->rows    }
+					, w => sub { $t->width   }
+				}
+			};
+		}
+
+		, a => sub {
+			my $t = $row->time;
+			return sub {
+				+{
+					s   => sub { $t->startup }
+					, t => sub { $t->total   }
+					, r => sub { $t->rows    }
+					, l => sub { $t->loops   }
+				}
+			}
+		}
+
+	};
+
+	## returns form func if the user request analyze info
+	## and has only explain info
+	return if $obj eq 'a' and not $row->has_time;
+
+	$modifier ?
+		$return->{$obj}->()->()->{$modifier}->()
+		: $return->{$obj}->()
+	;
+
+}
+
+sub _lookup_opprInfo {
+	my ( $row, $obj ) = @_;
+
+	my $return = {
+		n   => sub { $row->name    }
+		, v => sub { $row->verbose }
+		, s => sub { $row->src     }
+	};
+
+	$return->{$obj}->();
+
+}
+
+1;
+
+__END__
+
+=head1 NAME
+
+psql-plus - Utility to enhance the functionality of psql
+
+=head1 SYNOPSIS
+
+	EXPLAIN SELECT * FROM <table> | psql -d <database> | psql-plus --printf "%n"
+
+	psql -d database
+	\o|psql-plus --printf "%n"
+	EXPLAIN SELECT * FROM <table>
+	EXPLAIN SELECT * FROM <other table>
+	^D
+
+=head1 DESCRIPTION
+
+=head2 Arguements
+
+=over 5
+
+=item --printf ( Operation Row )
+
+	%n = name
+	%s = src
+	%d = dom_level
+
+	%e*  explain/estimate
+	%a*  actual
+
+	%es = Estimate startup
+	%et = Estimate total
+	%er = Estimate rows
+	%ew = Estimate width
+
+	%as = Actual (time) Startup
+	%at = Actual (time) Total
+	%ar = Actual Rows
+	%al = Actual Loops
+
+=item --printf-info ( OperationInfo Row )
+
+	%n = Info name
+	%v = Info verbose (not currently further parsed)
+	%s = Source (unmodified)
+
+=head1 BUGS
+
+Email me they will get fixed in .05 seconds, or you can sue someone else.
+
+=head1 CAVEATS
+
+Currently limited to "Enhancing" only the functionality of EXPLAIN and EXPLAIN ANALYZE
+
+=head1 COPYRIGHT
+
+Artistic or GPL, like 99.9% of CPAN-distributed stuff.
+
+=head1 AVAILABILITY
+
+CPAN
+
+http://repo.or.cz/w/Pqsl-Perl.git
+
+=head1 AUTHOR
+
+Evan Carroll <me at evancarroll.com>
+
+=cut
