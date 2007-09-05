@@ -12,4 +12,4 @@ no_index:
 requires:
   Getopt::Long: 0
   Moose: 0
-version: 0.01_01
+version: 0.01_02

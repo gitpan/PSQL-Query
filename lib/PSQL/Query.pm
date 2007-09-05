@@ -58,6 +58,10 @@ sub get_rows_by_dom_depth {
 
 PSQL::Query - A framework to parse pg-query plans via the output of Explain / Explain Analyze
 
+=head1 DESCRIPTION
+
+This module is currently a backend for L<psql-plus>, the release of .01 is largely dependant on it. The internals of this module are subject to change. Check the README for more information.
+
 =head1 AUTHOR
 
 Evan Carroll, C<< <me at evancarroll.com> >>

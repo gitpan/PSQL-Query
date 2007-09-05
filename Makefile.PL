@@ -9,6 +9,6 @@ requires       'Moose';
 requires       'Getopt::Long';
 no_index       'directory' => 'PSQL/Query';
 prompt_script  'bin/psql-plus';
-version        '0.01_01';
+version        '0.01_02';
 
 WriteAll;

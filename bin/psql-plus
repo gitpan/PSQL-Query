@@ -6,10 +6,11 @@ use PSQL::Query::Handle;
 use IO::Handle;
 use Getopt::Long;
 
-our ( $fmt_oppr, $fmt_info );
+our ( $fmt_oppr, $fmt_info, $dom_char );
 my $result = GetOptions (
 	'printf=s'        => \$fmt_oppr
 	, 'printf-info=s' => \$fmt_info
+	, 'dom-char=s'    => \$dom_char
 );
 
 $fmt_oppr = '%s' unless $fmt_oppr or $fmt_info;
@@ -73,7 +74,7 @@ sub _lookup_oppr {
 		##
 		n   => sub { $row->name       }
 		, s => sub { $row->src        }
-		, d => sub { $row->dom_level  }
+		, d => sub { $dom_char ? $dom_char x $row->dom_level : $row->dom_level  }
 
 		, e => sub {
 			my $t = $row->cost;
@@ -135,7 +136,7 @@ psql-plus - Utility to enhance the functionality of psql
 
 =head1 SYNOPSIS
 
-	EXPLAIN SELECT * FROM <table> | psql -d <database> | psql-plus --printf "%n"
+	echo EXPLAIN SELECT * FROM <table> | psql -d <database> | psql-plus --printf "%n"
 
 	psql -d database
 	\o|psql-plus --printf "%n"
@@ -143,17 +144,21 @@ psql-plus - Utility to enhance the functionality of psql
 	EXPLAIN SELECT * FROM <other table>
 	^D
 
+	psql-plus --dom-char x --printf "%d"
+
 =head1 DESCRIPTION
 
-=head2 Arguements
+=head2 Arguments
 
 =over 5
+
+=item --dom-char ( graphic char for dom-level '%d' representation )
 
 =item --printf ( Operation Row )
 
 	%n = name
 	%s = src
-	%d = dom_level
+	%d = dom_level ( see notes below )
 
 	%e*  explain/estimate
 	%a*  actual
@@ -168,11 +173,41 @@ psql-plus - Utility to enhance the functionality of psql
 	%ar = Actual Rows
 	%al = Actual Loops
 
+* dom_level: If you run an explain this is the whitespace significant portion from the left-margin to the first \S.
+
 =item --printf-info ( OperationInfo Row )
 
 	%n = Info name
 	%v = Info verbose (not currently further parsed)
 	%s = Source (unmodified)
+
+=back
+
+=head2 PSQL::Query
+
+This is currently just a script for the L<PSQL::Query> library. All of the voodoo happens there.
+
+=head2 Not-yet-implimented --lookforward-to
+
+Roadmap to .01:
+
+=over 5
+
+=item * automatic opt-in posting to pastbins (DWIM). syn: C<--pastbin [rafb|sial|pastbin]>
+
+=item * the ability to return a url only when posting to a pastbin. syn: C<--url-only>
+
+=item * XML exportation syn: C<--format=XML> / syntax highlighting (tentative)
+
+=back
+
+Roadmap to .02:
+
+=over 5
+
+=item * expansion of PSQL:: to encompass more postgres-specific functionality, the use of a new lib other than L<PSQL::Query>
+
+=back
 
 =head1 BUGS
 
@@ -190,7 +225,7 @@ Artistic or GPL, like 99.9% of CPAN-distributed stuff.
 
 CPAN
 
-http://repo.or.cz/w/Pqsl-Perl.git
+L<http://repo.or.cz/w/Pqsl-Perl.git>
 
 =head1 AUTHOR
 
